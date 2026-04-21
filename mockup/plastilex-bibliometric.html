@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlastiLex — Bilingual Bibliometric Analysis Tool</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    .app-shell { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      background: #0f172a;
+      color: #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .sidebar-brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.5px;
+    }
+    .sidebar-brand p {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    .sidebar-nav { padding: 12px 0; flex: 1; }
+    .nav-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
+      padding: 8px 20px 4px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      font-size: 0.875rem;
+      color: #94a3b8;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { color: #e2e8f0; background: #1e293b; }
+    .nav-item.active {
+      color: #38bdf8;
+      background: #1e293b;
+      border-left-color: #38bdf8;
+    }
+    .nav-item .icon { font-size: 1rem; width: 18px; text-align: center; }
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #1e293b;
+      font-size: 0.7rem;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    /* ── Main ── */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .topbar {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
+    .topbar-meta { font-size: 0.75rem; color: #94a3b8; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .badge-blue  { background: #dbeafe; color: #1d4ed8; }
+    .badge-red   { background: #fee2e2; color: #b91c1c; }
+    .badge-purple{ background: #ede9fe; color: #6d28d9; }
+    .badge-gray  { background: #f1f5f9; color: #475569; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+
+    .view { display: none; padding: 28px 32px; }
+    .view.active { display: block; }
+
+    .section-header { margin-bottom: 20px; }
+    .section-header h2 { font-size: 1.35rem; font-weight: 700; color: #0f172a; }
+    .section-header p { font-size: 0.85rem; color: #64748b; margin-top: 4px; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .card-value { font-size: 2rem; font-weight: 700; color: #0f172a; }
+    .card-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    /* ── View 1: Research Trends ── */
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .filter-label { font-size: 0.8rem; color: #64748b; font-weight: 500; }
+    .filter-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #475569;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .filter-btn:hover { border-color: #94a3b8; color: #1e293b; }
+    .filter-btn.active { background: #0f172a; border-color: #0f172a; color: #fff; }
+    .chart-wrap { position: relative; height: 340px; }
+    .chart-legend {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── View 2: Author Network ── */
+    .network-shell {
+      display: flex;
+      gap: 0;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 560px;
+    }
+    .network-graph { flex: 1; position: relative; background: #0f172a; }
+    #author-svg {
+      width: 100%;
+      height: 560px;
+      display: block;
+    }
+    .network-sidebar {
+      width: 260px;
+      border-left: 1px solid #e2e8f0;
+      padding: 20px;
+      background: #fff;
+      overflow-y: auto;
+    }
+    .network-sidebar h3 { font-size: 0.85rem; font-weight: 600; color: #0f172a; margin-bottom: 16px; }
+    .node-detail { display: none; }
+    .node-detail.active { display: block; }
+    .node-name { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+    .node-inst { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+    .node-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.8rem;
+    }
+    .node-stat-label { color: #64748b; }
+    .node-stat-value { font-weight: 600; color: #0f172a; }
+    .collab-list { margin-top: 10px; }
+    .collab-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 0.78rem;
+      color: #475569;
+    }
+    .collab-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .network-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .network-hint {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    /* ── View 3: Institutional Map ── */
+    .map-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .toggle-group { display: flex; border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden; }
+    .toggle-btn {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: none;
+      background: #fff;
+      color: #475569;
+      transition: all 0.12s;
+    }
+    .toggle-btn:hover { background: #f8fafc; }
+    .toggle-btn.active { background: #0f172a; color: #fff; }
+    #map-container {
+      height: 480px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+    .map-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    /* ── View 4: Keyword Co-occurrence ── */
+    .keyword-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .kw-panel {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .kw-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .kw-header h3 { font-size: 0.9rem; font-weight: 600; color: #0f172a; }
+    .kw-header p { font-size: 0.75rem; color: #94a3b8; margin-top: 1px; }
+    .kw-svg-wrap {
+      background: #0f172a;
+      position: relative;
+    }
+    .kw-svg-wrap svg { display: block; width: 100%; }
+
+    /* ── View 5: About ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .about-section h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+    .about-section p {
+      font-size: 0.85rem;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .about-section ul {
+      padding-left: 16px;
+      font-size: 0.85rem;
+      color: #475569;
+      line-height: 1.8;
+    }
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: #3b82f6;
+      text-decoration: none;
+      margin-top: 6px;
+    }
+    .source-link:hover { text-decoration: underline; }
+    .method-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #0f172a;
+      color: #38bdf8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-body { font-size: 0.83rem; color: #475569; line-height: 1.5; }
+    .step-body strong { color: #1e293b; }
+    .limitation-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: #fef3c7;
+      color: #92400e;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+
+    /* D3 tooltip */
+    .d3-tooltip {
+      position: fixed;
+      background: rgba(15,23,42,0.95);
+      color: #f1f5f9;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      pointer-events: none;
+      z-index: 9999;
+      max-width: 160px;
+      line-height: 1.4;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1>PlastiLex</h1>
+      <p>Bilingual Bibliometric<br>Analysis Tool · v0.1 mockup</p>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Analysis Views</div>
+      <div class="nav-item active" data-view="view-trends" onclick="showView('view-trends')">
+        <span class="icon">📈</span> Research Trends
+      </div>
+      <div class="nav-item" data-view="view-network" onclick="showView('view-network')">
+        <span class="icon">🕸️</span> Author Network
+      </div>
+      <div class="nav-item" data-view="view-map" onclick="showView('view-map')">
+        <span class="icon">🗺️</span> Institutional Map
+      </div>
+      <div class="nav-item" data-view="view-keywords" onclick="showView('view-keywords')">
+        <span class="icon">🔤</span> Keyword Co-occurrence
+      </div>
+      <div class="nav-label">Documentation</div>
+      <div class="nav-item" data-view="view-about" onclick="showView('view-about')">
+        <span class="icon">ℹ️</span> About &amp; Methodology
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Mock data · 2015–2024<br>
+      Chinese &amp; English corpora<br>
+      PlastiLex Project · Option 2
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Research Trends</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="badge badge-blue">English corpus</span>
+        <span class="badge badge-red">Chinese corpus</span>
+        <span class="badge badge-gray">2015–2024</span>
+      </div>
+    </div>
+
+    <!-- View 1: Research Trends -->
+    <section id="view-trends" class="view active">
+      <div class="section-header">
+        <h2>Research Trends by Topic</h2>
+        <p>Annual publication volume across 8 topic areas — Chinese vs English language corpora, 2015–2024</p>
+      </div>
+      <div class="stats-row">
+        <div class="card">
+          <div class="card-title">Total Papers</div>
+          <div class="card-value">12,847</div>
+          <div class="card-sub">Both corpora combined</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Chinese Corpus</div>
+          <div class="card-value">5,391</div>
+          <div class="card-sub">42% of total · CNKI/Wanfang</div>
+        </div>
+        <div class="card">
+          <div class="card-title">English Corpus</div>
+          <div class="card-value">7,456</div>
+          <div class="card-sub">58% of total · WoS/Scopus</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Avg Annual Growth</div>
+          <div class="card-value">+23%</div>
+          <div class="card-sub">Across all topics 2015–2022</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin:0">Filter by Topic</div>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">Topic:</span>
+          <button class="filter-btn active" onclick="setTopic('All')">All Topics</button>
+          <button class="filter-btn" onclick="setTopic('Microplastics')">Microplastics</button>
+          <button class="filter-btn" onclick="setTopic('Nanoplastics')">Nanoplastics</button>
+          <button class="filter-btn" onclick="setTopic('Marine Pollution')">Marine Pollution</button>
+          <button class="filter-btn" onclick="setTopic('Freshwater')">Freshwater</button>
+          <button class="filter-btn" onclick="setTopic('Bioaccumulation')">Bioaccumulation</button>
+          <button class="filter-btn" onclick="setTopic('Textile Fibers')">Textile Fibers</button>
+          <button class="filter-btn" onclick="setTopic('Aquaculture')">Aquaculture</button>
+          <button class="filter-btn" onclick="setTopic('Sediment')">Sediment</button>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="trends-chart"></canvas>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Chinese (ZH)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>English (EN)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 2: Author Collaboration Network -->
+    <section id="view-network" class="view">
+      <div class="section-header">
+        <h2>Author Collaboration Network</h2>
+        <p>Force-directed graph of co-authorships — click any node to inspect that author's profile</p>
+      </div>
+      <div class="network-legend" style="margin-bottom:12px;">
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;width:12px;height:12px;border-radius:50%"></div>English-primary author</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444;width:12px;height:12px;border-radius:50%"></div>Chinese-primary author</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a855f7;width:12px;height:12px;border-radius:50%"></div>Cross-language bridge author</div>
+        <div class="network-hint">Node size ∝ paper count. Drag nodes to reposition.</div>
+      </div>
+      <div class="network-shell">
+        <div class="network-graph">
+          <svg id="author-svg"></svg>
+        </div>
+        <div class="network-sidebar">
+          <h3>Author Profile</h3>
+          <div id="node-placeholder" style="font-size:0.8rem;color:#94a3b8;line-height:1.6;">
+            Click any node in the network to view that author's details, institution, publication count, and top collaborators.
+          </div>
+          <div id="node-detail" class="node-detail">
+            <div id="node-name" class="node-name"></div>
+            <div id="node-inst" class="node-inst"></div>
+            <div style="margin-top:14px;">
+              <div class="node-stat">
+                <span class="node-stat-label">Papers</span>
+                <span class="node-stat-value" id="node-papers"></span>
+              </div>
+              <div class="node-stat">
+                <span class="node-stat-label">Language focus</span>
+                <span class="node-stat-value" id="node-type"></span>
+              </div>
+              <div class="node-stat">
+                <span class="node-stat-label">h-index (est.)</span>
+                <span class="node-stat-value" id="node-hindex"></span>
+              </div>
+              <div class="node-stat">
+                <span class="node-stat-label">Active years</span>
+                <span class="node-stat-value" id="node-years"></span>
+              </div>
+            </div>
+            <div style="margin-top:14px;">
+              <div style="font-size:0.75rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Top Collaborators</div>
+              <div id="node-collabs" class="collab-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 3: Institutional Map -->
+    <section id="view-map" class="view">
+      <div class="section-header">
+        <h2>Institutional Map</h2>
+        <p>Global distribution of publishing institutions — circle size proportional to publication count</p>
+      </div>
+      <div class="map-controls">
+        <span class="filter-label">Show:</span>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="map-all" onclick="setMapFilter('all')">All Institutions</button>
+          <button class="toggle-btn" id="map-zh" onclick="setMapFilter('zh')">Chinese</button>
+          <button class="toggle-btn" id="map-en" onclick="setMapFilter('en')">English</button>
+        </div>
+        <span class="filter-label" style="margin-left:12px;">Click a marker for details</span>
+      </div>
+      <div id="map-container"></div>
+      <div class="map-stats">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Institutions Mapped</div>
+          <div class="card-value">21</div>
+          <div class="card-sub">Across 9 countries</div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Top Country (ZH)</div>
+          <div class="card-value">China</div>
+          <div class="card-sub">8 institutions · 1,847 papers</div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Top Country (EN)</div>
+          <div class="card-value">USA</div>
+          <div class="card-sub">4 institutions · 1,203 papers</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 4: Keyword Co-occurrence -->
+    <section id="view-keywords" class="view">
+      <div class="section-header">
+        <h2>Keyword Co-occurrence Networks</h2>
+        <p>Terms that appear together in the same paper — node size ∝ frequency, edge weight ∝ co-occurrence count</p>
+      </div>
+      <div class="keyword-grid">
+        <div class="kw-panel">
+          <div class="kw-header">
+            <div>
+              <h3>Chinese Corpus Keywords</h3>
+              <p>CNKI + Wanfang · 5,391 papers · top-15 terms</p>
+            </div>
+            <span class="badge badge-red" style="margin-left:auto">ZH</span>
+          </div>
+          <div class="kw-svg-wrap">
+            <svg id="kw-zh-svg" height="400"></svg>
+          </div>
+        </div>
+        <div class="kw-panel">
+          <div class="kw-header">
+            <div>
+              <h3>English Corpus Keywords</h3>
+              <p>Web of Science + Scopus · 7,456 papers · top-15 terms</p>
+            </div>
+            <span class="badge badge-blue" style="margin-left:auto">EN</span>
+          </div>
+          <div class="kw-svg-wrap">
+            <svg id="kw-en-svg" height="400"></svg>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <div class="card-title">Cross-language Keyword Alignment</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;">
+          <div style="font-size:0.8rem;color:#64748b;">
+            <strong style="color:#0f172a;display:block;margin-bottom:4px;">Shared Concepts</strong>
+            microplastics ↔ 微塑料<br>
+            aquaculture ↔ 水产养殖<br>
+            bioaccumulation ↔ 生物富集<br>
+            sediment ↔ 沉积物
+          </div>
+          <div style="font-size:0.8rem;color:#64748b;">
+            <strong style="color:#0f172a;display:block;margin-bottom:4px;">Chinese-unique Emphasis</strong>
+            珠江三角洲 (Pearl River Delta)<br>
+            渤海 (Bohai Sea)<br>
+            水产品安全 (Aquatic product safety)<br>
+            养殖密度 (Culture density)
+          </div>
+          <div style="font-size:0.8rem;color:#64748b;">
+            <strong style="color:#0f172a;display:block;margin-bottom:4px;">English-unique Emphasis</strong>
+            fibres / synthetic polymers<br>
+            risk assessment frameworks<br>
+            translocation (organism)<br>
+            trophic transfer
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 5: About & Methodology -->
+    <section id="view-about" class="view">
+      <div class="section-header">
+        <h2>About &amp; Methodology</h2>
+        <p>Data sources, acquisition protocol, analysis methods, and known limitations</p>
+      </div>
+      <div class="about-grid">
+        <div>
+          <div class="card">
+            <div class="about-section">
+              <h3>Project Overview</h3>
+              <p>PlastiLex is a student-led bibliometric project that bridges the Chinese–English language gap in microplastics/plastics contamination research. Rather than translating copyrighted papers, PlastiLex builds an open, interoperable metadata index and produces novel analytical products from that metadata.</p>
+              <p>This tool demonstrates the analytical scope achievable through metadata-only methods: trend analysis, collaboration mapping, institutional geography, and keyword co-occurrence — all without reproducing any copyrighted content.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="about-section">
+              <h3>Data Sources</h3>
+              <ul>
+                <li><strong>Chinese corpus:</strong> CNKI (中国知网), Wanfang Data (万方数据), CQVIP</li>
+                <li><strong>English corpus:</strong> Web of Science Core Collection, Scopus</li>
+                <li><strong>Time span:</strong> 2015–2024 (inclusive)</li>
+                <li><strong>Query terms:</strong> microplastics, nanoplastics, plastic pollution, aquaculture, marine contamination (+ Chinese equivalents)</li>
+              </ul>
+              <a class="source-link" href="#">📦 Zenodo metadata record: 10.5281/zenodo.placeholder-1</a><br>
+              <a class="source-link" href="#">📦 Zenodo network data: 10.5281/zenodo.placeholder-2</a>
+            </div>
+          </div>
+          <div class="card">
+            <div class="about-section">
+              <h3>Known Limitations</h3>
+              <p>Users should be aware of the following constraints:</p>
+              <span class="limitation-badge">Coverage bias</span> CNKI/Wanfang access limited to subscribed journals for this study period.<br><br>
+              <span class="limitation-badge">Language parsing</span> Chinese keyword extraction relies on jieba tokenisation; compound terms may be split.<br><br>
+              <span class="limitation-badge">Author disambiguation</span> Name deduplication for Chinese authors is approximate — romanisation variations may create duplicate nodes.<br><br>
+              <span class="limitation-badge">Citation data</span> Cross-language citation links are incomplete; only DOI-resolvable references captured.<br><br>
+              <span class="limitation-badge">Mock data notice</span> This mockup uses plausible synthetic data for demonstration; real data collection is in progress.
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="about-section">
+              <h3>Acquisition Protocol</h3>
+              <div class="method-step">
+                <div class="step-num">1</div>
+                <div class="step-body"><strong>Query construction</strong> — Boolean search queries built in both languages with MeSH-equivalent controlled vocabulary. Validated against reference seed sets of known papers.</div>
+              </div>
+              <div class="method-step">
+                <div class="step-num">2</div>
+                <div class="step-body"><strong>Metadata export</strong> — Title, author names, affiliations, abstract keywords, DOI, journal, year, language exported as structured records. No full-text downloaded.</div>
+              </div>
+              <div class="method-step">
+                <div class="step-num">3</div>
+                <div class="step-body"><strong>Deduplication</strong> — Cross-database duplicates removed via DOI matching, then fuzzy title+author matching for records lacking DOIs.</div>
+              </div>
+              <div class="method-step">
+                <div class="step-num">4</div>
+                <div class="step-body"><strong>Entity resolution</strong> — Author name disambiguation via institutional affiliation clustering + ORCID lookups where available.</div>
+              </div>
+              <div class="method-step">
+                <div class="step-num">5</div>
+                <div class="step-body"><strong>Network construction</strong> — Co-authorship edges built from shared paper membership. Keyword co-occurrence edges built from shared abstract keyword appearance.</div>
+              </div>
+              <div class="method-step">
+                <div class="step-num">6</div>
+                <div class="step-body"><strong>Open publication</strong> — Final metadata corpus deposited to Zenodo under CC BY 4.0. No copyrighted content reproduced.</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="about-section">
+              <h3>Analysis Methods</h3>
+              <ul>
+                <li><strong>Trend analysis:</strong> Annual publication counts per topic, computed from keyword-classified records using LDA topic modelling (k=8).</li>
+                <li><strong>Network analysis:</strong> Co-authorship graph computed with NetworkX; force layout via D3.js ForceSimulation.</li>
+                <li><strong>Geolocation:</strong> Institutional affiliations geocoded using OpenStreetMap Nominatim API; manual correction for top-50 institutions.</li>
+                <li><strong>Keyword analysis:</strong> Chinese keywords extracted with jieba; English with NLTK. Co-occurrence matrix built with sliding window (w=1 sentence).</li>
+                <li><strong>Language bridging:</strong> Cross-language author identification via institutional affiliation and self-reported language competency indicators in ORCID profiles.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="card">
+            <div class="about-section">
+              <h3>Citation</h3>
+              <p>If you use PlastiLex data in your work, please cite:</p>
+              <p style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;font-family:monospace;font-size:0.75rem;line-height:1.6">
+                PlastiLex Project (2024). Bilingual bibliometric dataset of microplastics research, 2015–2024. Zenodo. https://doi.org/10.5281/zenodo.placeholder
+              </p>
+              <a class="source-link" href="#">📄 View full methodology paper (preprint)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="d3-tooltip" id="d3-tooltip"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════
+
+const YEARS = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+
+const ZH_COUNTS = {
+  "Microplastics":   [12,18,34,58,89,134,178,203,221,198],
+  "Nanoplastics":    [ 3, 5, 8,14,22, 38, 61, 87,104,112],
+  "Marine Pollution":[28,35,48,67,92,118,145,162,173,168],
+  "Freshwater":      [15,22,31,44,63, 91,122,148,159,152],
+  "Bioaccumulation": [ 8,12,19,27,41, 58, 79, 95,108,103],
+  "Textile Fibers":  [ 4, 7,11,18,29, 44, 63, 82, 91, 87],
+  "Aquaculture":     [19,27,38,52,71, 98,128,151,163,157],
+  "Sediment":        [11,16,24,35,52, 73, 97,118,132,128]
+};
+
+const EN_COUNTS = {
+  "Microplastics":   [ 45, 67, 98,143,201,268,312,341,358,347],
+  "Nanoplastics":    [ 12, 19, 28, 44, 71,108,149,183,201,198],
+  "Marine Pollution":[ 78,101,132,168,214,259,291,318,331,322],
+  "Freshwater":      [ 34, 48, 67, 93,131,172,204,231,248,239],
+  "Bioaccumulation": [ 28, 39, 54, 74,104,138,165,189,203,197],
+  "Textile Fibers":  [ 18, 26, 37, 52, 74, 99,122,145,158,153],
+  "Aquaculture":     [ 41, 58, 79,107,148,191,224,253,268,261],
+  "Sediment":        [ 31, 44, 61, 84,118,153,182,208,221,215]
+};
+
+const AUTHORS = [
+  {id:0, name:"J. Thompson",    inst:"Univ. of Plymouth, UK",         papers:31, type:"en", hindex:14, years:"2016–2024"},
+  {id:1, name:"Li Wei (李伟)",   inst:"Ocean Univ. of China",          papers:44, type:"zh", hindex:18, years:"2015–2024"},
+  {id:2, name:"H. Zhang",       inst:"Univ. of Toronto, Canada",      papers:22, type:"bridge", hindex:11, years:"2017–2024"},
+  {id:3, name:"R. Browne",      inst:"Univ. of Exeter, UK",           papers:28, type:"en", hindex:13, years:"2015–2023"},
+  {id:4, name:"Wang Fang (王芳)", inst:"Xiamen University, China",      papers:38, type:"zh", hindex:16, years:"2015–2024"},
+  {id:5, name:"S. Cole",        inst:"Univ. of Plymouth, UK",         papers:19, type:"en", hindex:9,  years:"2017–2024"},
+  {id:6, name:"Chen Jian (陈健)", inst:"Tongji University, China",      papers:41, type:"zh", hindex:17, years:"2015–2024"},
+  {id:7, name:"M. Eriksen",     inst:"5 Gyres Institute, USA",        papers:24, type:"en", hindex:12, years:"2016–2024"},
+  {id:8, name:"Liu Yang (刘洋)", inst:"Nanjing Univ., China",          papers:35, type:"zh", hindex:15, years:"2016–2024"},
+  {id:9, name:"K. Mattsson",    inst:"Lund University, Sweden",       papers:17, type:"en", hindex:8,  years:"2018–2024"},
+  {id:10,name:"Zhang Hui (张慧)", inst:"Peking University, China",      papers:29, type:"zh", hindex:13, years:"2015–2024"},
+  {id:11,name:"A. Lusher",      inst:"NIVA, Norway",                  papers:21, type:"en", hindex:10, years:"2017–2024"},
+  {id:12,name:"Zhao Lei (赵磊)", inst:"Zhejiang University, China",    papers:33, type:"zh", hindex:14, years:"2015–2024"},
+  {id:13,name:"F. Galgani",     inst:"IFREMER, France",               papers:26, type:"en", hindex:12, years:"2015–2023"},
+  {id:14,name:"Wu Hua (吴华)",   inst:"South China Sea Inst. Oceanology",papers:27, type:"zh", hindex:12, years:"2016–2024"},
+  {id:15,name:"T. Galloway",    inst:"Univ. of Exeter, UK",           papers:34, type:"en", hindex:16, years:"2015–2024"},
+  {id:16,name:"Sun Ming (孙明)", inst:"Harbin Inst. Technology, China",papers:23, type:"zh", hindex:10, years:"2017–2024"},
+  {id:17,name:"J. Rochman",     inst:"Univ. of Toronto, Canada",      papers:29, type:"bridge", hindex:14, years:"2015–2024"},
+  {id:18,name:"Huang Li (黄丽)", inst:"Chinese Acad. Sciences",        papers:37, type:"zh", hindex:16, years:"2015–2024"},
+  {id:19,name:"P. Kershaw",     inst:"GESAMP / UNEP",                  papers:18, type:"en", hindex:9,  years:"2016–2023"},
+  {id:20,name:"Guo Wei (郭威)", inst:"Tsinghua University, China",    papers:31, type:"zh", hindex:13, years:"2016–2024"},
+  {id:21,name:"L. Lebreton",    inst:"The Ocean Cleanup, NL",         papers:22, type:"en", hindex:11, years:"2017–2024"},
+  {id:22,name:"Xu Rui (徐蕊)",  inst:"Wuhan University, China",       papers:25, type:"zh", hindex:11, years:"2016–2024"},
+  {id:23,name:"S. Primpke",     inst:"Alfred Wegener Inst., Germany", papers:16, type:"en", hindex:8,  years:"2018–2024"},
+  {id:24,name:"Lin Feng (林峰)", inst:"Fudan University, China",       papers:28, type:"zh", hindex:12, years:"2015–2024"},
+  {id:25,name:"I. Herrera",     inst:"CSIC, Spain",                   papers:14, type:"en", hindex:7,  years:"2019–2024"},
+  {id:26,name:"Qian Yi (钱义)", inst:"Ocean Univ. of China",          papers:32, type:"zh", hindex:14, years:"2015–2024"},
+  {id:27,name:"M. Cole",        inst:"Plymouth Marine Lab, UK",       papers:20, type:"en", hindex:10, years:"2016–2024"},
+  {id:28,name:"Yang Jun (杨俊)", inst:"Dalian Maritime Univ., China",  papers:26, type:"zh", hindex:11, years:"2016–2024"},
+  {id:29,name:"X. Li",          inst:"Univ. of Hong Kong",            papers:19, type:"bridge", hindex:9,  years:"2017–2024"},
+  {id:30,name:"Pan Ling (潘灵)", inst:"Xiamen University, China",      papers:22, type:"zh", hindex:10, years:"2017–2024"},
+  {id:31,name:"C. Rummel",      inst:"UFZ, Germany",                  papers:15, type:"en", hindex:7,  years:"2019–2024"},
+  {id:32,name:"Dong Tao (董涛)", inst:"Tongji University, China",      papers:24, type:"zh", hindex:11, years:"2016–2024"},
+  {id:33,name:"Y. Chae",        inst:"Pusan National Univ., Korea",   papers:18, type:"bridge", hindex:8,  years:"2018–2024"},
+  {id:34,name:"He Jing (何静)", inst:"Nanjing Univ., China",          papers:21, type:"zh", hindex:9,  years:"2017–2024"},
+  {id:35,name:"N. Filella",     inst:"Univ. of Geneva, Switzerland",  papers:13, type:"en", hindex:6,  years:"2020–2024"},
+  {id:36,name:"Luo Xiao (罗霄)", inst:"South China Univ. Tech.",       papers:19, type:"zh", hindex:8,  years:"2018–2024"},
+  {id:37,name:"B. Gewert",      inst:"Stockholm Univ., Sweden",       papers:14, type:"en", hindex:7,  years:"2019–2024"},
+  {id:38,name:"Jiang Hao (蒋昊)",inst:"Peking University, China",      papers:17, type:"zh", hindex:7,  years:"2019–2024"},
+  {id:39,name:"W. Cowger",      inst:"UC Santa Barbara, USA",         papers:16, type:"bridge", hindex:8,  years:"2020–2024"}
+];
+
+const COAUTHORSHIPS = [
+  [0,3],[0,5],[0,15],[0,27],[1,4],[1,6],[1,8],[1,14],[1,26],
+  [2,17],[2,29],[2,33],[3,15],[3,27],[4,8],[4,12],[4,30],
+  [5,27],[6,8],[6,20],[6,32],[7,19],[7,21],[8,18],[8,22],
+  [9,23],[9,31],[10,18],[10,24],[10,38],[11,13],[11,23],
+  [12,24],[12,30],[13,19],[14,28],[14,26],[15,17],[16,20],
+  [16,36],[17,29],[17,39],[18,26],[18,34],[20,32],[21,37],
+  [22,34],[22,36],[23,37],[24,38],[25,35],[26,28],[28,36],
+  [29,33],[30,34],[31,37],[32,38],[33,39],[35,37],[36,38],
+  [1,10],[4,14],[6,32],[8,26],[12,30],[18,20],[2,39],[0,17]
+];
+
+const INSTITUTIONS = [
+  {name:"Ocean University of China", country:"China", lat:36.08,  lng:120.38, papers:287, type:"zh", authors:["Li Wei","Wang Fang","Qian Yi"]},
+  {name:"Xiamen University",          country:"China", lat:24.44,  lng:118.08, papers:241, type:"zh", authors:["Wang Fang","Pan Ling","Xu Rui"]},
+  {name:"Tsinghua University",        country:"China", lat:40.00,  lng:116.33, papers:198, type:"zh", authors:["Guo Wei","Dong Tao"]},
+  {name:"Chinese Acad. of Sciences",  country:"China", lat:39.91,  lng:116.39, papers:312, type:"zh", authors:["Huang Li","Zhang Hui"]},
+  {name:"Nanjing University",         country:"China", lat:32.05,  lng:118.77, papers:176, type:"zh", authors:["Liu Yang","He Jing"]},
+  {name:"Tongji University",          country:"China", lat:31.28,  lng:121.50, papers:193, type:"zh", authors:["Chen Jian","Dong Tao"]},
+  {name:"Fudan University",           country:"China", lat:31.30,  lng:121.50, papers:154, type:"zh", authors:["Lin Feng","Jiang Hao"]},
+  {name:"South China Univ. of Tech.", country:"China", lat:23.05,  lng:113.40, papers:141, type:"zh", authors:["Luo Xiao"]},
+  {name:"University of Plymouth",     country:"UK",    lat:50.37,  lng:-4.14,  papers:198, type:"en", authors:["J. Thompson","S. Cole"]},
+  {name:"University of Exeter",       country:"UK",    lat:50.74,  lng:-3.53,  papers:167, type:"en", authors:["R. Browne","T. Galloway"]},
+  {name:"Plymouth Marine Laboratory", country:"UK",    lat:50.36,  lng:-4.15,  papers:121, type:"en", authors:["M. Cole","A. Lusher"]},
+  {name:"IFREMER",                    country:"France",lat:47.64,  lng:-2.76,  papers:98,  type:"en", authors:["F. Galgani"]},
+  {name:"Alfred Wegener Institute",   country:"Germany",lat:53.54, lng:8.58,   papers:87,  type:"en", authors:["S. Primpke","C. Rummel"]},
+  {name:"Lund University",            country:"Sweden",lat:55.71,  lng:13.21,  papers:74,  type:"en", authors:["K. Mattsson","B. Gewert"]},
+  {name:"5 Gyres Institute",          country:"USA",   lat:34.05,  lng:-118.24,papers:112, type:"en", authors:["M. Eriksen"]},
+  {name:"UC Santa Barbara",           country:"USA",   lat:34.41,  lng:-119.85,papers:89,  type:"bridge", authors:["W. Cowger"]},
+  {name:"University of Toronto",      country:"Canada",lat:43.66,  lng:-79.40, papers:143, type:"bridge", authors:["H. Zhang","J. Rochman"]},
+  {name:"NIVA",                       country:"Norway",lat:59.90,  lng:10.76,  papers:68,  type:"en", authors:["A. Lusher"]},
+  {name:"CSIC",                       country:"Spain", lat:40.42,  lng:-3.70,  papers:54,  type:"en", authors:["I. Herrera"]},
+  {name:"Pusan National University",  country:"Korea", lat:35.23,  lng:129.08, papers:61,  type:"bridge", authors:["Y. Chae"]},
+  {name:"University of Hong Kong",    country:"China/HK",lat:22.28,lng:114.17, papers:93,  type:"bridge", authors:["X. Li"]}
+];
+
+const ZH_KEYWORDS = [
+  {id:0,  label:"微塑料",    size:48}, {id:1,  label:"海洋污染",  size:39},
+  {id:2,  label:"水产养殖",  size:36}, {id:3,  label:"沉积物",    size:31},
+  {id:4,  label:"生物富集",  size:29}, {id:5,  label:"珠江三角洲",size:24},
+  {id:6,  label:"渤海",      size:22}, {id:7,  label:"聚苯乙烯",  size:20},
+  {id:8,  label:"纺织纤维",  size:19}, {id:9,  label:"鱼类毒性",  size:18},
+  {id:10, label:"水产品安全",size:17}, {id:11, label:"纳米塑料",  size:16},
+  {id:12, label:"养殖密度",  size:14}, {id:13, label:"海洋食品链",size:13},
+  {id:14, label:"POPs吸附",  size:12}
+];
+
+const ZH_KW_EDGES = [
+  {s:0,t:1,w:9},{s:0,t:2,w:8},{s:0,t:3,w:7},{s:0,t:4,w:7},
+  {s:0,t:7,w:6},{s:0,t:11,w:5},{s:1,t:3,w:6},{s:1,t:5,w:5},
+  {s:1,t:6,w:5},{s:2,t:10,w:6},{s:2,t:9,w:5},{s:2,t:12,w:4},
+  {s:3,t:4,w:5},{s:3,t:14,w:4},{s:4,t:9,w:5},{s:4,t:13,w:4},
+  {s:5,t:6,w:4},{s:7,t:8,w:4},{s:8,t:0,w:4},{s:9,t:13,w:3},
+  {s:10,t:12,w:3},{s:11,t:7,w:4},{s:14,t:0,w:3}
+];
+
+const EN_KEYWORDS = [
+  {id:0,  label:"microplastics",    size:51}, {id:1,  label:"marine litter",   size:38},
+  {id:2,  label:"ingestion",        size:35}, {id:3,  label:"fibres",          size:32},
+  {id:4,  label:"bioaccumulation",  size:29}, {id:5,  label:"risk assessment", size:25},
+  {id:6,  label:"nanoplastics",     size:23}, {id:7,  label:"polystyrene",     size:21},
+  {id:8,  label:"trophic transfer", size:19}, {id:9,  label:"sediment",        size:18},
+  {id:10, label:"translocation",    size:17}, {id:11, label:"polymer id.",     size:16},
+  {id:12, label:"fish larvae",      size:14}, {id:13, label:"FTIR analysis",   size:13},
+  {id:14, label:"ecotoxicology",    size:12}
+];
+
+const EN_KW_EDGES = [
+  {s:0,t:1,w:9},{s:0,t:2,w:8},{s:0,t:3,w:7},{s:0,t:4,w:7},
+  {s:0,t:6,w:6},{s:0,t:9,w:6},{s:1,t:9,w:5},{s:2,t:4,w:6},
+  {s:2,t:8,w:5},{s:2,t:10,w:5},{s:2,t:12,w:4},{s:3,t:7,w:5},
+  {s:3,t:11,w:5},{s:4,t:8,w:5},{s:4,t:14,w:4},{s:5,t:0,w:4},
+  {s:5,t:14,w:4},{s:6,t:7,w:4},{s:7,t:11,w:4},{s:8,t:12,w:3},
+  {s:9,t:11,w:4},{s:10,t:4,w:3},{s:13,t:3,w:3},{s:13,t:11,w:3}
+];
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+
+const VIEW_TITLES = {
+  "view-trends":   "Research Trends",
+  "view-network":  "Author Collaboration Network",
+  "view-map":      "Institutional Map",
+  "view-keywords": "Keyword Co-occurrence",
+  "view-about":    "About & Methodology"
+};
+const initializedViews = {};
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`[data-view="${id}"]`).classList.add('active');
+  document.getElementById('topbar-title').textContent = VIEW_TITLES[id];
+  if (!initializedViews[id]) {
+    initializedViews[id] = true;
+    if (id === 'view-network')  initNetwork();
+    if (id === 'view-map')      initMap();
+    if (id === 'view-keywords') initKeywords();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// VIEW 1: RESEARCH TRENDS (Chart.js)
+// ════════════════════════════════════════════════════════════
+
+let trendsChart = null;
+let currentTopic = 'All';
+
+function buildChartData(topic) {
+  const zhData = topic === 'All'
+    ? YEARS.map((_,i) => Object.values(ZH_COUNTS).reduce((s,a)=>s+a[i],0))
+    : ZH_COUNTS[topic];
+  const enData = topic === 'All'
+    ? YEARS.map((_,i) => Object.values(EN_COUNTS).reduce((s,a)=>s+a[i],0))
+    : EN_COUNTS[topic];
+  return { zhData, enData };
+}
+
+function initTrends() {
+  const ctx = document.getElementById('trends-chart').getContext('2d');
+  const {zhData, enData} = buildChartData('All');
+  trendsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: YEARS,
+      datasets: [
+        {
+          label: 'Chinese (ZH)',
+          data: zhData,
+          backgroundColor: 'rgba(239,68,68,0.75)',
+          borderColor: '#ef4444',
+          borderWidth: 1,
+          borderRadius: 3
+        },
+        {
+          label: 'English (EN)',
+          data: enData,
+          backgroundColor: 'rgba(59,130,246,0.75)',
+          borderColor: '#3b82f6',
+          borderWidth: 1,
+          borderRadius: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => `Year: ${items[0].label}`,
+            label: (item) => ` ${item.dataset.label}: ${item.raw} papers`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        },
+        y: {
+          grid: { color: '#f1f5f9' },
+          ticks: { font: { size: 11 } },
+          title: {
+            display: true,
+            text: 'Papers published',
+            font: { size: 11 },
+            color: '#94a3b8'
+          }
+        }
+      }
+    }
+  });
+}
+
+function setTopic(topic) {
+  currentTopic = topic;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === (topic === 'All' ? 'All Topics' : topic));
+  });
+  if (trendsChart) {
+    const {zhData, enData} = buildChartData(topic);
+    trendsChart.data.datasets[0].data = zhData;
+    trendsChart.data.datasets[1].data = enData;
+    trendsChart.update('active');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// VIEW 2: AUTHOR NETWORK (D3 force)
+// ════════════════════════════════════════════════════════════
+
+function initNetwork() {
+  const svg = d3.select('#author-svg');
+  const el  = document.getElementById('author-svg');
+  const W   = el.clientWidth  || 650;
+  const H   = el.clientHeight || 560;
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+  const color = { en:'#3b82f6', zh:'#ef4444', bridge:'#a855f7' };
+  const tooltip = document.getElementById('d3-tooltip');
+
+  const nodes = AUTHORS.map(a => ({...a}));
+  const links = COAUTHORSHIPS.map(([s,t]) => ({source:s, target:t}));
+
+  const sizeScale = d3.scaleLinear()
+    .domain([d3.min(nodes, d=>d.papers), d3.max(nodes, d=>d.papers)])
+    .range([5, 18]);
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(60).strength(0.4))
+    .force('charge', d3.forceManyBody().strength(-120))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide(d => sizeScale(d.papers) + 4));
+
+  const g = svg.append('g');
+
+  // Zoom
+  svg.call(d3.zoom().scaleExtent([0.4, 3]).on('zoom', (e) => g.attr('transform', e.transform)));
+
+  const link = g.append('g')
+    .selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('stroke', '#334155')
+    .attr('stroke-width', 1.2)
+    .attr('stroke-opacity', 0.6);
+
+  const node = g.append('g')
+    .selectAll('circle')
+    .data(nodes)
+    .join('circle')
+    .attr('r', d => sizeScale(d.papers))
+    .attr('fill', d => color[d.type])
+    .attr('stroke', '#0f172a')
+    .attr('stroke-width', 1.5)
+    .attr('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', (e,d) => { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag',  (e,d) => { d.fx=e.x; d.fy=e.y; })
+      .on('end',   (e,d) => { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
+    )
+    .on('mouseover', (e,d) => {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `<strong>${d.name}</strong><br>${d.inst}<br>${d.papers} papers`;
+    })
+    .on('mousemove', (e) => {
+      tooltip.style.left = (e.clientX+12)+'px';
+      tooltip.style.top  = (e.clientY-8)+'px';
+    })
+    .on('mouseout', () => { tooltip.style.display='none'; })
+    .on('click', (e,d) => { showAuthorDetail(d, nodes, links); });
+
+  sim.on('tick', () => {
+    link
+      .attr('x1', d=>d.source.x).attr('y1', d=>d.source.y)
+      .attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+    node.attr('cx', d=>d.x).attr('cy', d=>d.y);
+  });
+}
+
+function showAuthorDetail(d, nodes, links) {
+  document.getElementById('node-placeholder').style.display = 'none';
+  const det = document.getElementById('node-detail');
+  det.classList.add('active');
+  document.getElementById('node-name').textContent   = d.name;
+  document.getElementById('node-inst').textContent   = d.inst;
+  document.getElementById('node-papers').textContent = d.papers;
+  document.getElementById('node-hindex').textContent = d.hindex;
+  document.getElementById('node-years').textContent  = d.years;
+  const types = {en:'English-primary', zh:'Chinese-primary', bridge:'Cross-language bridge'};
+  document.getElementById('node-type').textContent   = types[d.type];
+
+  // Build collaborator list
+  const collabIds = new Set();
+  links.forEach(l => {
+    const sid = typeof l.source === 'object' ? l.source.id : l.source;
+    const tid = typeof l.target === 'object' ? l.target.id : l.target;
+    if (sid === d.id) collabIds.add(tid);
+    if (tid === d.id) collabIds.add(sid);
+  });
+  const colors = {en:'#3b82f6', zh:'#ef4444', bridge:'#a855f7'};
+  const collabHTML = [...collabIds].slice(0,5).map(cid => {
+    const a = nodes.find(n=>n.id===cid);
+    if(!a) return '';
+    return `<div class="collab-item">
+      <div class="collab-dot" style="background:${colors[a.type]}"></div>
+      <span>${a.name}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('node-collabs').innerHTML = collabHTML || '<span style="font-size:0.75rem;color:#94a3b8">No collaborators in this dataset</span>';
+}
+
+// ════════════════════════════════════════════════════════════
+// VIEW 3: INSTITUTIONAL MAP (Leaflet)
+// ════════════════════════════════════════════════════════════
+
+let leafletMap = null;
+let allMarkers = [];
+let currentMapFilter = 'all';
+
+function initMap() {
+  leafletMap = L.map('map-container').setView([30, 30], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 10,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(leafletMap);
+
+  const maxPapers = Math.max(...INSTITUTIONS.map(i=>i.papers));
+  const typeColor = { zh:'#ef4444', en:'#3b82f6', bridge:'#a855f7' };
+
+  INSTITUTIONS.forEach(inst => {
+    const r = 6 + (inst.papers / maxPapers) * 22;
+    const marker = L.circleMarker([inst.lat, inst.lng], {
+      radius: r,
+      fillColor: typeColor[inst.type],
+      color: '#fff',
+      weight: 2,
+      opacity: 0.9,
+      fillOpacity: 0.75
+    });
+    marker.bindPopup(`
+      <div style="font-family:'Segoe UI',sans-serif;min-width:160px">
+        <div style="font-weight:700;font-size:0.9rem;color:#0f172a">${inst.name}</div>
+        <div style="font-size:0.75rem;color:#64748b;margin-top:2px">${inst.country}</div>
+        <div style="margin-top:8px;font-size:0.8rem">
+          <span style="font-weight:600">${inst.papers}</span> papers<br>
+          <span style="margin-top:4px;display:block">Top authors: ${inst.authors.slice(0,2).join(', ')}</span>
+        </div>
+      </div>
+    `);
+    marker.instType = inst.type;
+    marker.addTo(leafletMap);
+    allMarkers.push(marker);
+  });
+}
+
+function setMapFilter(filter) {
+  currentMapFilter = filter;
+  ['map-all','map-zh','map-en'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('map-'+filter).classList.add('active');
+  allMarkers.forEach(m => {
+    if (filter === 'all' || m.instType === filter) {
+      if (!leafletMap.hasLayer(m)) m.addTo(leafletMap);
+    } else {
+      if (leafletMap.hasLayer(m)) m.remove();
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// VIEW 4: KEYWORD CO-OCCURRENCE (D3 force)
+// ════════════════════════════════════════════════════════════
+
+function initKeywords() {
+  drawKeywordGraph('#kw-zh-svg', ZH_KEYWORDS, ZH_KW_EDGES, '#ef4444');
+  drawKeywordGraph('#kw-en-svg', EN_KEYWORDS, EN_KW_EDGES, '#3b82f6');
+}
+
+function drawKeywordGraph(selector, kwData, edgeData, nodeColor) {
+  const svgEl = document.querySelector(selector);
+  const W = svgEl.clientWidth || 400;
+  const H = 400;
+  const tooltip = document.getElementById('d3-tooltip');
+
+  const svg = d3.select(selector)
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('height', H);
+
+  const nodes = kwData.map(d => ({...d}));
+  const links = edgeData.map(e => ({source:e.s, target:e.t, weight:e.w}));
+
+  const sizeScale = d3.scaleLinear()
+    .domain([d3.min(nodes, d=>d.size), d3.max(nodes, d=>d.size)])
+    .range([6, 22]);
+
+  const fontSize = d3.scaleLinear()
+    .domain([d3.min(nodes, d=>d.size), d3.max(nodes, d=>d.size)])
+    .range([8, 13]);
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(80).strength(0.5))
+    .force('charge', d3.forceManyBody().strength(-90))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide(d => sizeScale(d.size) + 18));
+
+  const link = svg.append('g')
+    .selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('stroke', '#334155')
+    .attr('stroke-width', d => 0.5 + d.weight * 0.4)
+    .attr('stroke-opacity', 0.5);
+
+  const nodeG = svg.append('g')
+    .selectAll('g')
+    .data(nodes)
+    .join('g')
+    .attr('cursor', 'default');
+
+  nodeG.append('circle')
+    .attr('r', d => sizeScale(d.size))
+    .attr('fill', nodeColor)
+    .attr('fill-opacity', 0.8)
+    .attr('stroke', '#0f172a')
+    .attr('stroke-width', 1);
+
+  nodeG.append('text')
+    .text(d => d.label)
+    .attr('text-anchor', 'middle')
+    .attr('dy', d => sizeScale(d.size) + fontSize(d.size) + 2)
+    .attr('fill', '#94a3b8')
+    .attr('font-size', d => fontSize(d.size) + 'px')
+    .attr('font-family', "'Segoe UI', sans-serif");
+
+  nodeG
+    .on('mouseover', (e,d) => {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `<strong>${d.label}</strong><br>Frequency: ${d.size}`;
+    })
+    .on('mousemove', (e) => {
+      tooltip.style.left = (e.clientX+12)+'px';
+      tooltip.style.top  = (e.clientY-8)+'px';
+    })
+    .on('mouseout', () => tooltip.style.display = 'none');
+
+  sim.on('tick', () => {
+    // Clamp within SVG bounds
+    nodes.forEach(d => {
+      const r = sizeScale(d.size);
+      d.x = Math.max(r+5, Math.min(W-r-5, d.x));
+      d.y = Math.max(r+5, Math.min(H-r-30, d.y));
+    });
+    link
+      .attr('x1', d=>d.source.x).attr('y1', d=>d.source.y)
+      .attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+    nodeG.attr('transform', d=>`translate(${d.x},${d.y})`);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+
+window.addEventListener('DOMContentLoaded', () => {
+  initializedViews['view-trends'] = true;
+  initTrends();
+});
+</script>
+</body>
+</html>
