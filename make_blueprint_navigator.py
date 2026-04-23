@@ -93,32 +93,33 @@ def build():
     h1(doc, 'What Is the PlastiLex Research Navigator?')
 
     para(doc,
-        'Every year, thousands of Chinese-language microplastics studies are published in '
-        'databases that English-speaking scientists cannot read, navigate, or cite. The '
-        'knowledge exists. The barrier is access -- and access is not just about language. '
-        'It is about knowing the work exists at all, knowing who is doing it, and knowing '
-        'how to reach them.'
+        'NIH and NSF reviewers increasingly flag grant proposals that miss substantial '
+        'international literature. In microplastics research, that means Chinese-language '
+        'studies -- thousands of them published every year in databases that English-speaking '
+        'scientists cannot read, navigate, or cite. The work exists. Most researchers do not '
+        'know it does.'
     )
     para(doc,
-        'PlastiLex Research Navigator is a web application that breaks all three barriers '
-        'at once. It gives any researcher a semantically searchable index of Chinese '
-        'microplastics literature, an AI chat interface that answers questions about that '
-        'literature, a collaborator discovery engine that surfaces the Chinese scientists '
-        'most relevant to their work -- and a Discover mode that shows researchers the '
-        'research gaps they did not know existed.'
+        'PlastiLex Research Navigator is a web application built to close that gap. '
+        'It gives any researcher a semantically searchable index of Chinese microplastics '
+        'literature, an AI chat interface that answers questions about that literature, '
+        'a collaborator discovery engine that surfaces the Chinese scientists most relevant '
+        'to their work -- and a Discover mode that surfaces research gaps they did not know '
+        'existed. The result: a stronger, more credible literature review and a grant '
+        'proposal that reviewers cannot flag for missing international coverage.'
     )
     para(doc, 'The central shift from any previous PlastiLex concept:')
     para(doc,
         'From: "Here are the gaps in Chinese-English microplastics research coverage."\n'
-        'To: "Help me find the Chinese researchers solving the gap I care about -- '
-        'and introduce me to them."'
+        'To: "Here are the research areas where Chinese literature can strengthen your '
+        'next grant proposal -- and the researchers you should know."'
     )
     para(doc,
         'The gap analysis data is not the product. It is the fuel that makes the product '
         'useful. A researcher arrives -- with or without a specific topic -- and leaves '
         'with: (a) a map of relevant Chinese research they did not know existed, '
         '(b) a shortlist of Chinese scientists working in that space, and '
-        '(c) the tools to reach out.'
+        '(c) the tools to reach out and cite.'
     )
 
     # 2. WHY NYSSA
