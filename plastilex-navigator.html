@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlastiLex — Research Navigator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    .app-shell { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      background: #0f172a;
+      color: #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .sidebar-brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.5px;
+    }
+    .sidebar-brand .tagline {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    .sidebar-nav { padding: 12px 0; flex: 1; }
+    .nav-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
+      padding: 8px 20px 4px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      font-size: 0.875rem;
+      color: #94a3b8;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { color: #e2e8f0; background: #1e293b; }
+    .nav-item.active {
+      color: #38bdf8;
+      background: #1e293b;
+      border-left-color: #38bdf8;
+    }
+    .nav-item .icon { font-size: 1rem; width: 18px; text-align: center; }
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #1e293b;
+      font-size: 0.7rem;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    /* ── Main ── */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .topbar {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
+    .topbar-meta { font-size: 0.75rem; color: #94a3b8; }
+    .topbar-badge {
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+    .content { flex: 1; padding: 32px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+    /* ── Section visibility ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #0ea5e9;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-ghost {
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+    .btn-ghost:hover { background: #f8fafc; }
+
+    /* ════════════════════════════════════════════
+       DISCOVER / HOMEPAGE
+    ════════════════════════════════════════════ */
+    .discover-hero {
+      text-align: center;
+      padding: 48px 0 40px;
+    }
+    .discover-hero h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+    .discover-hero p {
+      font-size: 1rem;
+      color: #64748b;
+      max-width: 560px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+    .hero-search {
+      display: flex;
+      gap: 10px;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .hero-search input {
+      flex: 1;
+      padding: 11px 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .hero-search input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+
+    .section-heading {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 16px;
+    }
+    .section-subheading {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 20px;
+      margin-top: -12px;
+    }
+
+    /* Gap cards */
+    .gap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+      margin-bottom: 40px;
+    }
+    .gap-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.18s;
+      position: relative;
+    }
+    .gap-card:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-color: #bae6fd;
+      transform: translateY(-2px);
+    }
+    .gap-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+    .gap-score {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0ea5e9;
+      margin-bottom: 4px;
+    }
+    .gap-score span { font-size: 0.9rem; font-weight: 400; color: #94a3b8; }
+    .gap-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .gap-stats {
+      display: flex;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 14px;
+    }
+    .gap-stats strong { color: #0f172a; }
+    .gap-bar {
+      height: 5px;
+      background: #f1f5f9;
+      border-radius: 99px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .gap-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0ea5e9, #6366f1);
+      border-radius: 99px;
+    }
+    .gap-cta {
+      font-size: 0.78rem;
+      color: #0ea5e9;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Topic pills */
+    .topic-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .pill {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 0.8rem;
+      padding: 5px 14px;
+      border-radius: 99px;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+      transition: all 0.15s;
+    }
+    .pill:hover, .pill.active {
+      background: #e0f2fe;
+      color: #0284c7;
+      border-color: #bae6fd;
+    }
+
+    /* ════════════════════════════════════════════
+       CHAT
+    ════════════════════════════════════════════ */
+    .chat-shell {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 64px);
+      max-height: 780px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+    }
+    .chat-header-text h3 { font-size: 0.95rem; font-weight: 600; }
+    .chat-header-text p { font-size: 0.75rem; color: #64748b; }
+    .chat-status { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: #22c55e; }
+    .chat-status::before { content: ''; width: 7px; height: 7px; background: #22c55e; border-radius: 50%; }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: #f8fafc;
+    }
+    .msg { display: flex; gap: 12px; max-width: 80%; }
+    .msg-ai { align-self: flex-start; }
+    .msg-user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+    .msg-ai .msg-icon { background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #fff; }
+    .msg-user .msg-icon { background: #e2e8f0; color: #475569; }
+    .msg-bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      line-height: 1.55;
+    }
+    .msg-ai .msg-bubble {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-top-left-radius: 4px;
+      color: #1e293b;
+    }
+    .msg-user .msg-bubble {
+      background: #0ea5e9;
+      color: #fff;
+      border-top-right-radius: 4px;
+    }
+    .msg-bubble p + p { margin-top: 8px; }
+    .msg-bubble ul { padding-left: 18px; margin-top: 6px; }
+    .msg-bubble li { margin-bottom: 4px; }
+    .result-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .result-chip {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      color: #0284c7;
+      font-size: 0.75rem;
+      padding: 5px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .result-chip:hover { background: #e0f2fe; }
+    .chat-input-row {
+      padding: 16px 20px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 10px;
+      background: #fff;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      outline: none;
+    }
+    .chat-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.12); }
+    .chat-hint { font-size: 0.72rem; color: #94a3b8; padding: 0 24px 12px; }
+
+    /* ════════════════════════════════════════════
+       PAPER RESULTS
+    ════════════════════════════════════════════ */
+    .results-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .results-count { font-size: 0.85rem; color: #64748b; }
+    .results-count strong { color: #0f172a; }
+    .sort-row { display: flex; gap: 8px; }
+    .sort-btn {
+      font-size: 0.75rem;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #64748b;
+      cursor: pointer;
+    }
+    .sort-btn.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
+
+    .paper-list { display: flex; flex-direction: column; gap: 16px; }
+    .paper-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px 24px;
+      transition: box-shadow 0.15s;
+    }
+    .paper-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+    .paper-lang-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fef9c3;
+      color: #854d0e;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 99px;
+      margin-bottom: 8px;
+    }
+    .paper-title-zh {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+    .paper-title-pinyin {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+    .paper-meta {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .paper-meta strong { color: #475569; }
+    .paper-theme {
+      background: #f0fdf4;
+      border-left: 3px solid #22c55e;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.83rem;
+      color: #166534;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .paper-theme strong { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #4ade80; margin-bottom: 3px; }
+    .paper-footer {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .paper-tag {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+    .doi-link {
+      font-size: 0.75rem;
+      color: #0ea5e9;
+      text-decoration: none;
+      margin-left: auto;
+    }
+    .doi-link:hover { text-decoration: underline; }
+
+    /* ════════════════════════════════════════════
+       RESEARCHER PROFILE
+    ════════════════════════════════════════════ */
+    .profile-hero {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 28px 32px;
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .profile-info { flex: 1; min-width: 200px; }
+    .profile-name-zh { font-size: 1.5rem; font-weight: 800; color: #0f172a; }
+    .profile-name-en { font-size: 0.95rem; color: #64748b; margin-bottom: 6px; }
+    .profile-institution { font-size: 0.85rem; color: #475569; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .profile-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .profile-tag {
+      background: #f0f9ff;
+      color: #0284c7;
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #bae6fd;
+    }
+    .profile-stats {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .stat-box { text-align: center; }
+    .stat-box .val { font-size: 1.5rem; font-weight: 800; color: #0ea5e9; }
+    .stat-box .lbl { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .profile-actions { display: flex; flex-direction: column; gap: 10px; }
+
+    .collab-signal {
+      background: #faf5ff;
+      border: 1px solid #e9d5ff;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .collab-icon { font-size: 1.5rem; }
+    .collab-text h4 { font-size: 0.875rem; font-weight: 600; color: #7c3aed; margin-bottom: 2px; }
+    .collab-text p { font-size: 0.78rem; color: #6b7280; }
+
+    .pub-list { display: flex; flex-direction: column; gap: 12px; }
+    .pub-item {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .pub-title-zh { font-size: 0.9rem; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+    .pub-title-en { font-size: 0.8rem; color: #64748b; font-style: italic; margin-bottom: 8px; }
+    .pub-meta { font-size: 0.75rem; color: #94a3b8; display: flex; gap: 12px; flex-wrap: wrap; }
+    .pub-citations { margin-left: auto; font-size: 0.75rem; color: #6366f1; font-weight: 600; }
+
+    /* ════════════════════════════════════════════
+       EMAIL DRAFT
+    ════════════════════════════════════════════ */
+    .email-container {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      overflow: hidden;
+      max-width: 760px;
+    }
+    .email-toolbar {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .email-toolbar h3 { font-size: 0.9rem; font-weight: 600; color: #0f172a; }
+    .email-fields { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; }
+    .email-field {
+      display: flex;
+      gap: 8px;
+      font-size: 0.83rem;
+      padding: 6px 0;
+      border-bottom: 1px solid #f8fafc;
+    }
+    .email-field-label { width: 70px; color: #94a3b8; font-weight: 500; flex-shrink: 0; }
+    .email-field-value { color: #1e293b; }
+    .email-body {
+      padding: 24px;
+      font-size: 0.875rem;
+      line-height: 1.8;
+      color: #1e293b;
+      white-space: pre-line;
+    }
+    .email-body p { margin-bottom: 14px; }
+    .email-actions {
+      padding: 16px 24px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #faf5ff;
+      border: 1px solid #e9d5ff;
+      color: #7c3aed;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+
+    /* ── Researcher cards grid (discover) ── */
+    .researcher-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .researcher-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .researcher-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      border-color: #bae6fd;
+    }
+    .researcher-mini-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #a78bfa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .researcher-mini-info h4 { font-size: 0.9rem; font-weight: 700; color: #0f172a; }
+    .researcher-mini-info .zh { font-size: 0.85rem; color: #6366f1; }
+    .researcher-mini-info p { font-size: 0.72rem; color: #94a3b8; margin-top: 3px; }
+    .collab-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .sidebar { width: 56px; }
+      .sidebar-brand p, .sidebar .nav-label, .nav-item span, .sidebar-footer { display: none; }
+      .nav-item { justify-content: center; padding: 12px; }
+      .content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <h1>🌿 PlastiLex</h1>
+      <p class="tagline">Research Navigator<br>Chinese Microplastics Literature</p>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-label">Explore</div>
+      <div class="nav-item active" onclick="showSection('discover', this)">
+        <span class="icon">🔭</span><span>Discover</span>
+      </div>
+      <div class="nav-item" onclick="showSection('chat', this)">
+        <span class="icon">💬</span><span>AI Search</span>
+      </div>
+      <div class="nav-label">Database</div>
+      <div class="nav-item" onclick="showSection('results', this)">
+        <span class="icon">📄</span><span>Paper Results</span>
+      </div>
+      <div class="nav-item" onclick="showSection('profile', this)">
+        <span class="icon">👤</span><span>Researcher Profiles</span>
+      </div>
+      <div class="nav-label">Outreach</div>
+      <div class="nav-item" onclick="showSection('email', this)">
+        <span class="icon">✉️</span><span>Draft Email</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      PlastiLex v0.9 (mockup)<br>
+      18,420 Chinese papers indexed<br>
+      Last sync: 2026-04-20
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Discover — Featured Research Gaps</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="topbar-badge">🇨🇳 Chinese Literature</span>
+        <span class="topbar-meta">18,420 papers · 3,204 researchers</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══════════════════════════════════════
+           SECTION: DISCOVER
+      ══════════════════════════════════════ -->
+      <div class="section active" id="section-discover">
+        <div class="discover-hero">
+          <h2>Bridge the Research Gap</h2>
+          <p>PlastiLex surfaces Chinese microplastics science that the English-speaking world has missed — helping you collaborate across language barriers.</p>
+          <div class="hero-search">
+            <input type="text" placeholder="Try: sediment microplastics, freshwater biofilm…" id="hero-search-input" />
+            <button class="btn btn-primary" onclick="goToChat()">Search →</button>
+          </div>
+        </div>
+
+        <div class="section-heading">🔥 Featured Research Gaps</div>
+        <div class="section-subheading">Topics where Chinese literature significantly exceeds English coverage</div>
+        <div class="gap-grid">
+
+          <div class="gap-card" onclick="goToResults('freshwater-sediment')">
+            <span class="gap-badge">High Priority</span>
+            <div class="gap-score">87 <span>/ 100</span></div>
+            <div class="gap-title">Microplastic accumulation in freshwater sediment: Yellow & Yangtze River basins</div>
+            <div class="gap-stats">
+              <span>🇨🇳 <strong>34</strong> papers</span>
+              <span>🌐 <strong>12</strong> English</span>
+            </div>
+            <div class="gap-bar"><div class="gap-bar-fill" style="width:87%"></div></div>
+            <div class="gap-cta">Explore papers →</div>
+          </div>
+
+          <div class="gap-card" onclick="goToResults('biofilm')">
+            <span class="gap-badge">Rising</span>
+            <div class="gap-score">79 <span>/ 100</span></div>
+            <div class="gap-title">Plastic-associated biofilm communities (plastisphere) in lake ecosystems</div>
+            <div class="gap-stats">
+              <span>🇨🇳 <strong>28</strong> papers</span>
+              <span>🌐 <strong>9</strong> English</span>
+            </div>
+            <div class="gap-bar"><div class="gap-bar-fill" style="width:79%"></div></div>
+            <div class="gap-cta">Explore papers →</div>
+          </div>
+
+          <div class="gap-card" onclick="goToResults('antibiotic')">
+            <span class="gap-badge">Critical</span>
+            <div class="gap-score">92 <span>/ 100</span></div>
+            <div class="gap-title">Antibiotic resistance gene spread via microplastics in aquaculture effluent</div>
+            <div class="gap-stats">
+              <span>🇨🇳 <strong>41</strong> papers</span>
+              <span>🌐 <strong>7</strong> English</span>
+            </div>
+            <div class="gap-bar"><div class="gap-bar-fill" style="width:92%"></div></div>
+            <div class="gap-cta">Explore papers →</div>
+          </div>
+
+          <div class="gap-card" onclick="goToResults('textile')">
+            <span class="gap-badge">Emerging</span>
+            <div class="gap-score">71 <span>/ 100</span></div>
+            <div class="gap-title">Textile fiber microplastics in urban wastewater treatment plants</div>
+            <div class="gap-stats">
+              <span>🇨🇳 <strong>22</strong> papers</span>
+              <span>🌐 <strong>15</strong> English</span>
+            </div>
+            <div class="gap-bar"><div class="gap-bar-fill" style="width:71%"></div></div>
+            <div class="gap-cta">Explore papers →</div>
+          </div>
+
+          <div class="gap-card" onclick="goToResults('soil')">
+            <span class="gap-badge">High Priority</span>
+            <div class="gap-score">84 <span>/ 100</span></div>
+            <div class="gap-title">Microplastic–heavy metal co-contamination in agricultural soils</div>
+            <div class="gap-stats">
+              <span>🇨🇳 <strong>37</strong> papers</span>
+              <span>🌐 <strong>11</strong> English</span>
+            </div>
+            <div class="gap-bar"><div class="gap-bar-fill" style="width:84%"></div></div>
+            <div class="gap-cta">Explore papers →</div>
+          </div>
+
+        </div>
+
+        <div class="section-heading">🔬 Featured Researchers Open to Collaboration</div>
+        <div class="section-subheading">Scientists with international co-authorship experience</div>
+        <div class="researcher-grid">
+          <div class="researcher-card" onclick="goToProfile('zhang')">
+            <div class="researcher-mini-avatar">张</div>
+            <div class="researcher-mini-info">
+              <div class="zh">张伟</div>
+              <h4>Zhang Wei</h4>
+              <p>Tongji University · 42 papers<br><span class="collab-dot"></span>International co-author</p>
+            </div>
+          </div>
+          <div class="researcher-card" onclick="goToProfile('li')">
+            <div class="researcher-mini-avatar">李</div>
+            <div class="researcher-mini-info">
+              <div class="zh">李晓燕</div>
+              <h4>Li Xiaoyan</h4>
+              <p>Chinese Acad. of Sciences · 35 papers<br><span class="collab-dot"></span>International co-author</p>
+            </div>
+          </div>
+          <div class="researcher-card" onclick="goToProfile('wang')">
+            <div class="researcher-mini-avatar">王</div>
+            <div class="researcher-mini-info">
+              <div class="zh">王建国</div>
+              <h4>Wang Jianguo</h4>
+              <p>Zhejiang University · 29 papers<br><span class="collab-dot"></span>English publications</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">🏷️ Browse by Topic</div>
+        <div class="topic-pills">
+          <span class="pill active" onclick="filterTopic(this)">All Topics</span>
+          <span class="pill" onclick="filterTopic(this)">Freshwater Systems</span>
+          <span class="pill" onclick="filterTopic(this)">Marine Coastal</span>
+          <span class="pill" onclick="filterTopic(this)">Soil & Agriculture</span>
+          <span class="pill" onclick="filterTopic(this)">Wastewater</span>
+          <span class="pill" onclick="filterTopic(this)">Human Health</span>
+          <span class="pill" onclick="filterTopic(this)">Ecotoxicology</span>
+          <span class="pill" onclick="filterTopic(this)">Polymer Identification</span>
+          <span class="pill" onclick="filterTopic(this)">Biofilm / Plastisphere</span>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           SECTION: CHAT
+      ══════════════════════════════════════ -->
+      <div class="section" id="section-chat">
+        <div class="chat-shell">
+          <div class="chat-header">
+            <div class="chat-avatar">🌿</div>
+            <div class="chat-header-text">
+              <h3>PlastiLex Research AI</h3>
+              <p>Search 18,420 Chinese microplastics papers in natural language</p>
+            </div>
+            <div style="margin-left:auto;"><span class="chat-status">Online</span></div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+
+            <!-- Turn 1: AI greeting -->
+            <div class="msg msg-ai">
+              <div class="msg-icon">🌿</div>
+              <div class="msg-bubble">
+                <p>你好 / Hello! I'm PlastiLex Research AI. I can help you search Chinese-language microplastics literature, find relevant researchers, and identify gaps compared to the English corpus.</p>
+                <p>What research question are you working on? You can ask in English — I'll search the Chinese database and summarize key findings for you.</p>
+              </div>
+            </div>
+
+            <!-- Turn 1: User -->
+            <div class="msg msg-user">
+              <div class="msg-icon">👤</div>
+              <div class="msg-bubble">
+                I'm studying how microplastics affect antibiotic resistance in freshwater environments. What has the Chinese literature found that I might be missing?
+              </div>
+            </div>
+
+            <!-- Turn 2: AI -->
+            <div class="msg msg-ai">
+              <div class="msg-icon">🌿</div>
+              <div class="msg-bubble">
+                <p>Great topic — this is one of the highest-gap areas in PlastiLex (gap score 92/100). I found <strong>41 relevant Chinese papers</strong> that have minimal English counterparts.</p>
+                <p>Key findings from the Chinese literature (2018–2025):</p>
+                <ul>
+                  <li>PE and PP microplastics selectively enrich ARG-carrying bacteria in river biofilms (Yangtze River, 2022)</li>
+                  <li>Aquaculture effluent amplifies ARG transfer rates 3–8× compared to control sediment</li>
+                  <li>Smaller MP fractions (&lt;1 µm) show higher ARG enrichment than larger fragments</li>
+                  <li>Seasonal variation in ARG-MP association peaks in summer (warmer water temperatures)</li>
+                </ul>
+                <p>Would you like to see the specific papers, or find researchers working on this topic who are open to collaboration?</p>
+                <div class="result-chips">
+                  <span class="result-chip" onclick="showSection('results', document.querySelector('.nav-item:nth-child(4)'))">📄 View 41 papers</span>
+                  <span class="result-chip" onclick="goToProfile('zhang')">👤 Top researcher: Zhang Wei</span>
+                  <span class="result-chip">🗺️ Map study sites</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Turn 2: User -->
+            <div class="msg msg-user">
+              <div class="msg-icon">👤</div>
+              <div class="msg-bubble">
+                That's really helpful. Can you show me the most-cited papers on this specifically from the Yangtze River basin?
+              </div>
+            </div>
+
+            <!-- Turn 3: AI -->
+            <div class="msg msg-ai">
+              <div class="msg-icon">🌿</div>
+              <div class="msg-bubble">
+                <p>Here are the top 3 most-cited Chinese papers on microplastic–ARG interactions in the Yangtze River basin:</p>
+                <ul>
+                  <li><strong>Chen et al. (2022)</strong> — 微塑料对长江流域抗生素抗性基因扩散的促进作用 — <em>Cited 87 times</em></li>
+                  <li><strong>Liu &amp; Wang (2021)</strong> — 养殖废水中微塑料表面ARG富集特征研究 — <em>Cited 64 times</em></li>
+                  <li><strong>Huang et al. (2023)</strong> — 不同粒径微塑料携带抗性基因的季节变化规律 — <em>Cited 51 times</em></li>
+                </ul>
+                <p>All three have authors with international co-authorship experience. Want me to draft a collaboration outreach email to the lead researcher on the Chen et al. paper?</p>
+                <div class="result-chips">
+                  <span class="result-chip" onclick="showSection('results', document.querySelector('.nav-item:nth-child(4)'))">📄 See full paper details</span>
+                  <span class="result-chip" onclick="showSection('email', document.querySelector('.nav-item:nth-child(7)'))">✉️ Draft outreach email</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="chat-hint">💡 Try: "find papers on soil microplastics with heavy metals" · "show researchers at Tsinghua" · "what's the research gap in marine coastal zones?"</div>
+          <div class="chat-input-row">
+            <input class="chat-input" type="text" placeholder="Ask about the Chinese microplastics literature…" onkeydown="if(event.key==='Enter') sendChat(this)" />
+            <button class="btn btn-primary" onclick="sendChat(this.previousElementSibling)">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           SECTION: PAPER RESULTS
+      ══════════════════════════════════════ -->
+      <div class="section" id="section-results">
+        <div class="results-toolbar">
+          <div class="results-count">Showing <strong>18 papers</strong> · Topic: Microplastics &amp; Antibiotic Resistance</div>
+          <div class="sort-row">
+            <button class="sort-btn active">Most Cited</button>
+            <button class="sort-btn">Newest</button>
+            <button class="sort-btn">Gap Score</button>
+          </div>
+        </div>
+
+        <div class="paper-list">
+
+          <div class="paper-card">
+            <div class="paper-lang-badge">🇨🇳 Chinese · Peer-reviewed</div>
+            <div class="paper-title-zh">微塑料对长江流域抗生素抗性基因扩散的促进作用</div>
+            <div class="paper-title-pinyin">Wēisùliào duì Cháng Jiāng liúyù kàngshēngsù kàngxìng jīyīn kuòsàn de cùjìn zuòyòng</div>
+            <div class="paper-meta">
+              <span><strong>Authors:</strong> Chen R., Liu Y., Zhao M.</span>
+              <span><strong>Journal:</strong> 环境科学学报 (Acta Scientiae Circumstantiae)</span>
+              <span><strong>Year:</strong> 2022</span>
+              <span><strong>Citations:</strong> 87</span>
+            </div>
+            <div class="paper-theme">
+              <strong>Research Theme Summary</strong>
+              Field study demonstrating that polyethylene microplastics in Yangtze River sediment accelerate horizontal transfer of antibiotic resistance genes between bacterial communities, with PE particles showing 3× higher ARG enrichment than natural sediment controls.
+            </div>
+            <div class="paper-footer">
+              <span class="paper-tag">Yangtze River</span>
+              <span class="paper-tag">ARG transfer</span>
+              <span class="paper-tag">Polyethylene</span>
+              <span class="paper-tag">Field study</span>
+              <a class="doi-link" href="#">DOI: 10.19823/j.cnki.1001-7461.2022.04.012 ↗</a>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-lang-badge">🇨🇳 Chinese · Peer-reviewed</div>
+            <div class="paper-title-zh">养殖废水中微塑料表面抗生素抗性基因富集特征研究</div>
+            <div class="paper-title-pinyin">Yǎngzhí fèishuǐ zhōng wēisùliào biǎomiàn kàngshēngsù kàngxìng jīyīn fùjí tèzhēng yánjiū</div>
+            <div class="paper-meta">
+              <span><strong>Authors:</strong> Liu X., Wang J., Sun Q.</span>
+              <span><strong>Journal:</strong> 中国环境科学 (China Environmental Science)</span>
+              <span><strong>Year:</strong> 2021</span>
+              <span><strong>Citations:</strong> 64</span>
+            </div>
+            <div class="paper-theme">
+              <strong>Research Theme Summary</strong>
+              Laboratory and field analysis of aquaculture effluent showing that microplastic surfaces in fish farm discharge water serve as hotspots for antibiotic resistance gene accumulation, with enrichment factors 3–8× higher than surrounding bulk water.
+            </div>
+            <div class="paper-footer">
+              <span class="paper-tag">Aquaculture</span>
+              <span class="paper-tag">Effluent</span>
+              <span class="paper-tag">ARG enrichment</span>
+              <a class="doi-link" href="#">DOI: 10.3969/j.issn.1000-6923.2021.08.024 ↗</a>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-lang-badge">🇨🇳 Chinese · Peer-reviewed</div>
+            <div class="paper-title-zh">不同粒径微塑料携带抗性基因的季节变化规律</div>
+            <div class="paper-title-pinyin">Bùtóng lìjìng wēisùliào xiédài kàngxìng jīyīn de jìjié biànhuà guīlǜ</div>
+            <div class="paper-meta">
+              <span><strong>Authors:</strong> Huang L., Zhou F., Chen Y., Tan J.</span>
+              <span><strong>Journal:</strong> 生态环境学报 (Ecology and Environmental Sciences)</span>
+              <span><strong>Year:</strong> 2023</span>
+              <span><strong>Citations:</strong> 51</span>
+            </div>
+            <div class="paper-theme">
+              <strong>Research Theme Summary</strong>
+              Seasonal monitoring study revealing that nano-sized microplastics (&lt;1 µm) carry significantly higher ARG loads than larger fragments, with peak enrichment in summer months correlating with elevated water temperature and bacterial metabolic activity.
+            </div>
+            <div class="paper-footer">
+              <span class="paper-tag">Nanoplastics</span>
+              <span class="paper-tag">Seasonal variation</span>
+              <span class="paper-tag">Size fractionation</span>
+              <a class="doi-link" href="#">DOI: 10.16258/j.cnki.1674-5906.2023.02.008 ↗</a>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-lang-badge">🇨🇳 Chinese · Peer-reviewed</div>
+            <div class="paper-title-zh">太湖沉积物中微塑料分布特征及生态风险评价</div>
+            <div class="paper-title-pinyin">Tài Hú chénjīwù zhōng wēisùliào fēnbù tèzhēng jí shēngtài fēngxiǎn píngjià</div>
+            <div class="paper-meta">
+              <span><strong>Authors:</strong> Zhang W., Pan H., Li S.</span>
+              <span><strong>Journal:</strong> 湖泊科学 (Journal of Lake Sciences)</span>
+              <span><strong>Year:</strong> 2022</span>
+              <span><strong>Citations:</strong> 48</span>
+            </div>
+            <div class="paper-theme">
+              <strong>Research Theme Summary</strong>
+              Spatial distribution mapping of microplastics in Lake Tai (Taihu) sediment cores, showing concentration gradients linked to urban runoff inputs, with ecological risk index calculations indicating moderate-to-high risk in nearshore zones.
+            </div>
+            <div class="paper-footer">
+              <span class="paper-tag">Lake Taihu</span>
+              <span class="paper-tag">Sediment</span>
+              <span class="paper-tag">Ecological risk</span>
+              <span class="paper-tag">Spatial distribution</span>
+              <a class="doi-link" href="#">DOI: 10.18307/2022.0215 ↗</a>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-lang-badge">🇨🇳 Chinese · Peer-reviewed</div>
+            <div class="paper-title-zh">农业土壤中微塑料与重金属联合污染的相互作用机制</div>
+            <div class="paper-title-pinyin">Nóngyè tǔrǎng zhōng wēisùliào yǔ zhòng jīnshǔ liánhé wūrǎn de xiānghù zuòyòng jīzhì</div>
+            <div class="paper-meta">
+              <span><strong>Authors:</strong> Wang J., Xu L., Fang D., He Q.</span>
+              <span><strong>Journal:</strong> 土壤学报 (Acta Pedologica Sinica)</span>
+              <span><strong>Year:</strong> 2023</span>
+              <span><strong>Citations:</strong> 43</span>
+            </div>
+            <div class="paper-theme">
+              <strong>Research Theme Summary</strong>
+              Mechanistic study of microplastic–heavy metal co-contamination in southeastern Chinese agricultural soils, showing that aged plastic fragments adsorb Cd and Pb more efficiently than pristine plastics due to surface oxidation, increasing bioavailability to earthworms.
+            </div>
+            <div class="paper-footer">
+              <span class="paper-tag">Agricultural soil</span>
+              <span class="paper-tag">Heavy metals</span>
+              <span class="paper-tag">Cadmium</span>
+              <span class="paper-tag">Aging</span>
+              <a class="doi-link" href="#">DOI: 10.11766/trxb202301150014 ↗</a>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="text-align:center;margin-top:24px;">
+          <button class="btn btn-secondary">Load 13 more papers</button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           SECTION: RESEARCHER PROFILE
+      ══════════════════════════════════════ -->
+      <div class="section" id="section-profile">
+        <div class="profile-hero">
+          <div class="profile-avatar">张</div>
+          <div class="profile-info">
+            <div class="profile-name-zh">张伟</div>
+            <div class="profile-name-en">Zhang Wei · Associate Professor</div>
+            <div class="profile-institution">🏛️ Tongji University · College of Environmental Science & Engineering · Shanghai, China</div>
+            <div class="profile-tags">
+              <span class="profile-tag">Freshwater Ecotoxicology</span>
+              <span class="profile-tag">ARG Transfer</span>
+              <span class="profile-tag">Sediment Chemistry</span>
+              <span class="profile-tag">Microplastics</span>
+            </div>
+            <div class="profile-stats">
+              <div class="stat-box"><div class="val">42</div><div class="lbl">Papers</div></div>
+              <div class="stat-box"><div class="val">1,240</div><div class="lbl">Citations</div></div>
+              <div class="stat-box"><div class="val">18</div><div class="lbl">h-index</div></div>
+              <div class="stat-box"><div class="val">6</div><div class="lbl">Intl. Co-authors</div></div>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-primary" onclick="showSection('email', document.querySelector('.nav-item:nth-child(7)'))">✉️ Draft Outreach Email</button>
+            <button class="btn btn-ghost">🔗 ORCID: 0000-0002-3847-5512</button>
+            <button class="btn btn-ghost">📧 wzhang@tongji.edu.cn</button>
+          </div>
+        </div>
+
+        <div class="collab-signal">
+          <div class="collab-icon">🤝</div>
+          <div class="collab-text">
+            <h4>International Collaboration Signal</h4>
+            <p>Zhang Wei has co-authored with researchers at ETH Zürich (2021), University of Toronto (2022), and Wageningen University (2024). Has responded to 3 of 4 recorded cold outreach emails in PlastiLex history.</p>
+          </div>
+        </div>
+
+        <div class="section-heading">Publications (Selected)</div>
+        <div class="pub-list">
+
+          <div class="pub-item">
+            <div class="pub-title-zh">微塑料对长江流域抗生素抗性基因扩散的促进作用</div>
+            <div class="pub-title-en">Microplastics promote antibiotic resistance gene dissemination in Yangtze River basin (2022)</div>
+            <div class="pub-meta">
+              <span>环境科学学报 · 2022</span>
+              <span>Co-authors: Liu Y., Zhao M.</span>
+              <div class="pub-citations">87 citations</div>
+            </div>
+          </div>
+
+          <div class="pub-item">
+            <div class="pub-title-zh">长三角城市河道沉积物微塑料赋存特征研究</div>
+            <div class="pub-title-en">Microplastic occurrence in urban river sediments of the Yangtze River Delta region (2021)</div>
+            <div class="pub-meta">
+              <span>水科学进展 · 2021</span>
+              <span>Co-authors: Pan H., ETH co-author (Müller K.)</span>
+              <div class="pub-citations">62 citations</div>
+            </div>
+          </div>
+
+          <div class="pub-item">
+            <div class="pub-title-zh">淡水底栖生物对微塑料的摄入与生物积累效应</div>
+            <div class="pub-title-en">Ingestion and bioaccumulation of microplastics in freshwater benthic organisms (2020)</div>
+            <div class="pub-meta">
+              <span>生态毒理学报 · 2020</span>
+              <span>Co-authors: Sun Q., Li X.</span>
+              <div class="pub-citations">55 citations</div>
+            </div>
+          </div>
+
+          <div class="pub-item">
+            <div class="pub-title-zh">微塑料表面塑料小球菌的群落结构及功能多样性</div>
+            <div class="pub-title-en">Community structure and functional diversity of plastisphere microbiome on aged microplastics (2023)</div>
+            <div class="pub-meta">
+              <span>微生物学报 · 2023</span>
+              <span>Co-authors: Zhou F., Wageningen co-author (van Dijk R.)</span>
+              <div class="pub-citations">38 citations</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="margin-top:24px;">
+          <div class="section-heading">Other Featured Researchers</div>
+          <div class="researcher-grid" style="margin-top:12px;">
+            <div class="researcher-card" onclick="loadProfile('li')">
+              <div class="researcher-mini-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">李</div>
+              <div class="researcher-mini-info">
+                <div class="zh">李晓燕</div>
+                <h4>Li Xiaoyan</h4>
+                <p>Chinese Acad. of Sciences · 35 papers</p>
+              </div>
+            </div>
+            <div class="researcher-card" onclick="loadProfile('wang')">
+              <div class="researcher-mini-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9)">王</div>
+              <div class="researcher-mini-info">
+                <div class="zh">王建国</div>
+                <h4>Wang Jianguo</h4>
+                <p>Zhejiang University · 29 papers</p>
+              </div>
+            </div>
+            <div class="researcher-card" onclick="loadProfile('chen')">
+              <div class="researcher-mini-avatar" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">陈</div>
+              <div class="researcher-mini-info">
+                <div class="zh">陈静</div>
+                <h4>Chen Jing</h4>
+                <p>Peking University · 27 papers</p>
+              </div>
+            </div>
+            <div class="researcher-card" onclick="loadProfile('liu')">
+              <div class="researcher-mini-avatar" style="background:linear-gradient(135deg,#f97316,#facc15)">刘</div>
+              <div class="researcher-mini-info">
+                <div class="zh">刘明</div>
+                <h4>Liu Ming</h4>
+                <p>Tsinghua University · 31 papers</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           SECTION: EMAIL DRAFT
+      ══════════════════════════════════════ -->
+      <div class="section" id="section-email">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+          <h2 style="font-size:1.1rem;font-weight:700;color:#0f172a;">Outreach Email Draft</h2>
+          <span class="ai-badge">✨ AI Generated</span>
+          <span style="font-size:0.8rem;color:#94a3b8;">Based on Zhang Wei's profile and your research interests</span>
+        </div>
+
+        <div class="email-container">
+          <div class="email-toolbar">
+            <h3>📧 Draft Introduction Email</h3>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary" style="font-size:0.8rem;padding:6px 12px;">Regenerate</button>
+              <button class="btn btn-secondary" style="font-size:0.8rem;padding:6px 12px;">Edit</button>
+              <button class="btn btn-primary" style="font-size:0.8rem;padding:6px 12px;">Copy to Clipboard</button>
+            </div>
+          </div>
+          <div class="email-fields">
+            <div class="email-field">
+              <div class="email-field-label">To:</div>
+              <div class="email-field-value">Zhang Wei &lt;wzhang@tongji.edu.cn&gt;</div>
+            </div>
+            <div class="email-field">
+              <div class="email-field-label">Subject:</div>
+              <div class="email-field-value">Research Collaboration Inquiry: Microplastics and Antibiotic Resistance Genes in Freshwater Systems</div>
+            </div>
+          </div>
+          <div class="email-body">
+<p>Dear Professor Zhang Wei,</p>
+
+<p>I am writing to introduce myself and to express my sincere interest in your research on the role of microplastics in facilitating antibiotic resistance gene (ARG) dissemination in freshwater systems. Your 2022 paper in 环境科学学报 — particularly the finding that PE microplastics accelerate horizontal ARG transfer at 3× the rate of natural sediment — aligns closely with questions I am currently investigating in my own work.</p>
+
+<p>I am [Your Name], a [PhD student / researcher] at [Your Institution], where I focus on [briefly describe your research]. I discovered your work through PlastiLex, a bilingual research navigation tool indexing Chinese microplastics literature, which identified a significant gap between your findings and what has been published in English-language journals.</p>
+
+<p>I believe there is a strong opportunity for collaboration, particularly around comparing ARG enrichment dynamics in river systems under different regulatory and land-use regimes. I would be very interested in discussing whether any of your current projects might benefit from a complementary international perspective, or whether there may be scope for a joint publication or grant proposal.</p>
+
+<p>I would be grateful for the opportunity to connect — even a 20-minute video call would be wonderful. I am happy to communicate in English, and I have some familiarity with basic Mandarin if written Chinese correspondence is preferred.</p>
+
+<p>Thank you very much for your time and for your contributions to this important field.</p>
+
+<p>Best regards,<br>
+[Your Name]<br>
+[Your Institution]<br>
+[Your Email] · [ORCID if available]</p>
+          </div>
+          <div class="email-actions">
+            <button class="btn btn-ghost">🌐 Translate to Chinese</button>
+            <button class="btn btn-secondary">📋 Copy</button>
+            <button class="btn btn-primary">✉️ Open in Mail App</button>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:18px 22px;">
+          <div style="font-size:0.875rem;font-weight:600;color:#166534;margin-bottom:8px;">💡 PlastiLex Tips for Cold Outreach</div>
+          <ul style="font-size:0.8rem;color:#15803d;padding-left:18px;line-height:1.8;">
+            <li>Researchers at Chinese institutions often respond to emails that reference specific papers by name (including Chinese title)</li>
+            <li>Zhang Wei has international experience — an English email is appropriate</li>
+            <li>Mention your institution prominently; it establishes legitimacy</li>
+            <li>Offer flexibility: a call, email exchange, or co-authorship depending on their interest level</li>
+            <li>Response rate for this researcher: ~75% based on PlastiLex outreach history</li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app-shell -->
+
+<script>
+  // ── Navigation ──────────────────────────────────────────
+  const SECTION_TITLES = {
+    discover: 'Discover — Featured Research Gaps',
+    chat: 'AI Research Search',
+    results: 'Paper Results — Microplastics & ARG',
+    profile: 'Researcher Profile — Zhang Wei',
+    email: 'Outreach Email Draft',
+  };
+
+  function showSection(id, navEl) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + id).classList.add('active');
+    if (navEl) navEl.classList.add('active');
+    document.getElementById('topbar-title').textContent = SECTION_TITLES[id] || id;
+    window.scrollTo(0, 0);
+  }
+
+  function goToChat() {
+    const input = document.getElementById('hero-search-input').value;
+    showSection('chat', document.querySelectorAll('.nav-item')[1]);
+    if (input) {
+      const chatInput = document.querySelector('.chat-input');
+      if (chatInput) chatInput.value = input;
+    }
+  }
+
+  function goToResults(topic) {
+    showSection('results', document.querySelectorAll('.nav-item')[2]);
+  }
+
+  function goToProfile(name) {
+    showSection('profile', document.querySelectorAll('.nav-item')[3]);
+  }
+
+  function loadProfile(name) {
+    // In a real app this would swap profile data; here it's a no-op demo
+    showSection('profile', document.querySelectorAll('.nav-item')[3]);
+  }
+
+  function filterTopic(el) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // ── Simulated chat send ──────────────────────────────────
+  const AI_RESPONSES = [
+    "That's a great follow-up question! Based on the PlastiLex database, I found 8 papers matching that specific angle. The most relevant is a 2023 study from Zhejiang University examining soil–water microplastic transfer routes. Would you like me to pull the full metadata?",
+    "Interesting — I'm cross-referencing your query with the gap analysis. There are 14 Chinese papers on this topic published since 2020, with only 3 English equivalents. The lead researcher at Tsinghua University (Liu Ming) has the most comprehensive dataset.",
+    "I found 22 relevant papers. The dominant research theme in the Chinese corpus focuses on polymer type differences (PE vs PP vs PET) in ARG attachment efficiency. This hasn't been well-covered in English literature yet.",
+  ];
+  let aiIdx = 0;
+
+  function sendChat(inputEl) {
+    const val = inputEl.value.trim();
+    if (!val) return;
+    const msgs = document.getElementById('chat-messages');
+
+    // User msg
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg msg-user';
+    userMsg.innerHTML = `<div class="msg-icon">👤</div><div class="msg-bubble">${escHtml(val)}</div>`;
+    msgs.appendChild(userMsg);
+    inputEl.value = '';
+
+    // Simulate typing delay
+    setTimeout(() => {
+      const aiMsg = document.createElement('div');
+      aiMsg.className = 'msg msg-ai';
+      aiMsg.innerHTML = `<div class="msg-icon">🌿</div><div class="msg-bubble"><p>${AI_RESPONSES[aiIdx % AI_RESPONSES.length]}</p></div>`;
+      msgs.appendChild(aiMsg);
+      msgs.scrollTop = msgs.scrollHeight;
+      aiIdx++;
+    }, 900);
+
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Sort buttons ──────────────────────────────────────────
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('sort-btn')) {
+      document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  });
+</script>
+
+</body>
+</html>
